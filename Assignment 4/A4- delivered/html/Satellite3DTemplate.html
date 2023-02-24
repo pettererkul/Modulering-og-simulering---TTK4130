@@ -1,0 +1,875 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Satellite3DTemplate</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-02-14"><meta name="DC.source" content="Satellite3DTemplate.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput">clear <span class="string">all</span>
+<span class="comment">%close all</span>
+clc
+
+<span class="comment">% Eart params</span>
+earth_radius = 6356e+3;
+orbit_height = 36000e+3;
+azi = pi/4; <span class="comment">%azimuth</span>
+dec = pi/4; <span class="comment">%declination</span>
+
+position = (earth_radius+orbit_height)*[sin(dec)*cos(azi);sin(dec)*sin(azi);cos(dec)];
+omega = [deg2rad(60);deg2rad(80);deg2rad(100)];
+velocity = [0;0;0];
+<span class="comment">% Rotation matrix describing the satellite orientation</span>
+r = random(<span class="string">'norm'</span>,0,1,[3,1]); <span class="comment">% Random axis of rotation / angle</span>
+orientation = expm([   0,      -r(3),  +r(2);
+             +r(3),     0,   -r(1);
+             -r(2), +r(1),    0]);
+
+<span class="comment">% Define your initial state, e.g. as:</span>
+ state = [position;
+          reshape(orientation,9,1);
+          velocity;
+          omega];
+
+<span class="comment">% "parameters" allows you to pass some parameters to the "SatelliteDynamics" function</span>
+mass = 1;
+length = 50e-3;
+parameters = 1/6*mass*length^2;
+
+time_final = 6; <span class="comment">%Final time</span>
+
+<span class="comment">% Simulate satellite dynamics</span>
+[time,statetraj] = ode45(@(t,x)SatelliteDynamics(t, x, parameters),[0,time_final],state);
+
+<span class="comment">% Here below is a template for a real-time animation</span>
+ScaleFrame = 5;   <span class="comment">% Scaling factor for adjusting the frame size (cosmetic)</span>
+FS         = 15;  <span class="comment">% Fontsize for text</span>
+SW         = 0.035; <span class="comment">% Arrows size</span>
+tic; <span class="comment">% resets Matlab clock</span>
+time_display = 0; <span class="comment">% time displayed</span>
+<span class="keyword">while</span> time_display &lt; time(end)
+    time_animate = toc; <span class="comment">% get the current clock time</span>
+    <span class="comment">% Interpolate the simulation at the current clock time</span>
+    state_animate = interp1(time,statetraj,time_animate)';
+
+    pos_cm = state_animate(1:3)*1e-7;        <span class="comment">%scaled position of the satellite</span>
+    R = reshape(state_animate(4:12),3,3); <span class="comment">% orientation</span>
+
+    omega = state_animate(16:18);          <span class="comment">% omega</span>
+
+
+
+    figure(1);clf;hold <span class="string">on</span>
+    <span class="comment">% Use the example from "Satellite3DExample.m" to display your satellite</span>
+    MakeFrame(zeros(3,1),eye(3),ScaleFrame,FS,SW,<span class="string">'a'</span>, <span class="string">'color'</span>, <span class="string">'k'</span>)
+    MakeFrame(pos_cm, R, ScaleFrame,FS,SW,<span class="string">'b'</span>, <span class="string">'color'</span>, <span class="string">'r'</span>)
+    MakeArrow(pos_cm,R*omega,FS,SW,<span class="string">'$$\omega$$'</span>, <span class="string">'color'</span>, [0,0.5,0])
+    DrawRectangle(pos_cm,R,<span class="string">'color'</span>,[0.5,0.5,0.5]);
+    FormatPicture([0;0;2],0.5*[73.8380   21.0967   30.1493])
+
+    <span class="keyword">if</span> time_display == 0
+        display(<span class="string">'Hit a key to start animation'</span>)
+        pause
+        tic
+    <span class="keyword">end</span>
+    time_display = toc; <span class="comment">% get the current clock time</span>
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+
+M_t =
+
+     5
+
+Hit a key to start animation
+</pre><img vspace="5" hspace="5" src="Satellite3DTemplate_01.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clear all
+%close all
+clc
+
+% Eart params
+earth_radius = 6356e+3;
+orbit_height = 36000e+3;
+azi = pi/4; %azimuth
+dec = pi/4; %declination
+
+position = (earth_radius+orbit_height)*[sin(dec)*cos(azi);sin(dec)*sin(azi);cos(dec)];
+omega = [deg2rad(60);deg2rad(80);deg2rad(100)];
+velocity = [0;0;0];
+% Rotation matrix describing the satellite orientation
+r = random('norm',0,1,[3,1]); % Random axis of rotation / angle
+orientation = expm([   0,      -r(3),  +r(2);
+             +r(3),     0,   -r(1);
+             -r(2), +r(1),    0]);      
+
+% Define your initial state, e.g. as:
+ state = [position;
+          reshape(orientation,9,1);
+          velocity;
+          omega];
+
+% "parameters" allows you to pass some parameters to the "SatelliteDynamics" function
+mass = 1;
+length = 50e-3;
+parameters = 1/6*mass*length^2;
+
+time_final = 6; %Final time
+
+% Simulate satellite dynamics
+[time,statetraj] = ode45(@(t,x)SatelliteDynamics(t, x, parameters),[0,time_final],state);
+
+% Here below is a template for a real-time animation
+ScaleFrame = 5;   % Scaling factor for adjusting the frame size (cosmetic)
+FS         = 15;  % Fontsize for text
+SW         = 0.035; % Arrows size
+tic; % resets Matlab clock
+time_display = 0; % time displayed
+while time_display < time(end)
+    time_animate = toc; % get the current clock time
+    % Interpolate the simulation at the current clock time
+    state_animate = interp1(time,statetraj,time_animate)';
+
+    pos_cm = state_animate(1:3)*1e-7;        %scaled position of the satellite
+    R = reshape(state_animate(4:12),3,3); % orientation
+    
+    omega = state_animate(16:18);          % omega
+
+    
+
+    figure(1);clf;hold on
+    % Use the example from "Satellite3DExample.m" to display your satellite
+    MakeFrame(zeros(3,1),eye(3),ScaleFrame,FS,SW,'a', 'color', 'k')
+    MakeFrame(pos_cm, R, ScaleFrame,FS,SW,'b', 'color', 'r')
+    MakeArrow(pos_cm,R*omega,FS,SW,'$$\omega$$', 'color', [0,0.5,0])
+    DrawRectangle(pos_cm,R,'color',[0.5,0.5,0.5]);
+    FormatPicture([0;0;2],0.5*[73.8380   21.0967   30.1493])
+
+    if time_display == 0
+        display('Hit a key to start animation')
+        pause
+        tic
+    end
+    time_display = toc; % get the current clock time
+end
+##### SOURCE END #####
+--></body></html>
